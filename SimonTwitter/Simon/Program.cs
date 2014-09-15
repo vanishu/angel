@@ -9,6 +9,13 @@ using System.Threading.Tasks;
 
 namespace Simon
 {
+    class StatusWrapper
+    {
+        public Status Status { get; set; }
+        public int Rank { get; set; }
+        public List<String> InterestingTweets { get; set; }
+    }
+
     class Program
     {
         static void Main(string[] args)
@@ -23,6 +30,7 @@ namespace Simon
 
         private static async Task RunRest(string args)
         {
+            String htmlOutputFile = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "\\tweetdata.html";
             string[] userSearchTerms = ConfigurationManager.AppSettings["searchValues"].Split(',');
 
             var auth = new ApplicationOnlyAuthorizer
@@ -63,6 +71,9 @@ namespace Simon
                  select tweet)
                 .ToList();
 
+            List<StatusWrapper> sorted = new List<StatusWrapper>();
+
+
             exactResults.ForEach(tweet =>
                 {
                     var now = DateTime.Now;
@@ -82,8 +93,10 @@ namespace Simon
                         place = tweet.Place.FullName + "," + tweet.Place.Country + "," + tweet.Place.PlaceType;
                     }
 
+                    int rank = NameUniqueness.RankName(tweet.User.Name);
+
                     Console.WriteLine(
-                        "User Name: {0}, \r\nScreen Name: {1}, \r\nTweet: {2}, \r\nProfile Image URL: {3}, \r\nCreated At: {4}, \r\n" +
+                        "User Name: {0}, \r\nScreen Name: {1},\r\nRank: {10}, \r\nTweet: {2}, \r\nProfile Image URL: {3}, \r\nCreated At: {4}, \r\n" +
                         "Lat/Lon: {5}, \r\nBio: {6}, \r\nGeo Enabled: {7}, \r\nLocation: {8} \r\nPlace: {9}",
                         tweet.User.Name,
                         tweet.User.ScreenNameResponse,
@@ -94,7 +107,8 @@ namespace Simon
                         tweet.User.Description,
                         tweet.User.GeoEnabled,
                         tweet.User.Location,
-                        place);
+                        place,
+                        rank);
 
 
                     // Get tweets that the user cares about
@@ -117,8 +131,6 @@ namespace Simon
 
 
                     // Write the HTML file
-                    String htmlOutputFile = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "\\tweetdata.html";
-
                     if (!File.Exists(htmlOutputFile))
                     {
                         using (StreamWriter sw = new StreamWriter(htmlOutputFile, true))
@@ -129,27 +141,32 @@ namespace Simon
                         }
                     }
 
-                    using (StreamWriter sw = new StreamWriter(htmlOutputFile, true))
-                    {
-                        sw.WriteLine(
-                        @"<h1>" + tweet.User.Name + @", @" + tweet.User.ScreenNameResponse + @"<br>
-                        <img src='" + tweet.User.ProfileImageUrl.Replace("_normal", "_400x400") + @"' width=150 height=150><br>
+                    sorted.Add(new StatusWrapper() { Status = tweet, Rank = rank, InterestingTweets = interestingTweets });
+                });
+
+
+            foreach (StatusWrapper wrapper in sorted.OrderBy(a=>a.Rank))
+            {
+                using (StreamWriter sw = new StreamWriter(htmlOutputFile, true))
+                {
+                    sw.WriteLine(
+                    @"<h1>" + wrapper.Status.User.Name + @", @" + wrapper.Status.User.ScreenNameResponse + @" (" + wrapper.Rank + @")<br>
+                        <img src='" + wrapper.Status.User.ProfileImageUrl.Replace("_normal", "_400x400") + @"' width=150 height=150><br>
                         </h1>
                         <div style='font-size:20px;'>
-                        Tweet: <b>" + tweet.Text + @"</b><br>
-                        Location: <b>" + tweet.User.Location + @"</b><br>
-                        Bio: " + tweet.User.Description + @"<br>
-                        Place: " + tweet.User.Location + @"<br><br>");
+                        Tweet: <b>" + wrapper.Status.Text + @"</b><br>
+                        Location: <b>" + wrapper.Status.User.Location + @"</b><br>
+                        Bio: " + wrapper.Status.User.Description + @"<br>
+                        Place: " + wrapper.Status.User.Location + @"<br><br>");
 
-                        foreach (String str in interestingTweets)
-                        {
-                            sw.WriteLine("+<b><i>Tweet</i></b>: " + str + "<br>");
-                        }
-
-                        sw.WriteLine("</div>");
+                    foreach (String str in wrapper.InterestingTweets)
+                    {
+                        sw.WriteLine("+<b><i>Tweet</i></b>: " + str + "<br>");
                     }
 
-                });
+                    sw.WriteLine("</div>");
+                }
+            }
         }
     }
 }

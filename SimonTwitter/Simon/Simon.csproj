@@ -38,6 +38,9 @@
     <Reference Include="LinqToTwitterPcl">
       <HintPath>..\packages\LinqToTwitter.3.0.1-beta3\lib\net45\LinqToTwitterPcl.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\..\..\..\..\GitHub\Backend\Libs\Json.NET 5.0 Release 6\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
@@ -56,6 +59,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="NameUniqueness.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
